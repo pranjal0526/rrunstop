@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>CLUTCH Dashboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column. KPI strip, pressure check, view switch (batters / bowlers), ranking, score-vs-sample chart, stability, context, sensitivity, method. */
+:root{--bg:#f3f5f7;--surface:#fff;--ink:#101a24;--ink2:#46535f;--muted:#6c7884;--line:#dce2e8;--grid:#e7ebef;--track:#e9eef2;--bat:#2457c5;--bowl:#b8470f;--accent:var(--bat);--soft:#c4cdd6;
+--font-display:"Space Grotesk","Segoe UI",system-ui,sans-serif;--font-body:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;color-scheme:light}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0d141b;--surface:#141d26;--ink:#e8eef4;--ink2:#aab7c3;--muted:#8895a1;--line:#263341;--grid:#1f2a35;--track:#1d2833;--bat:#7db0ff;--bowl:#ffa66b;--soft:#3b4a58;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d141b;--surface:#141d26;--ink:#e8eef4;--ink2:#aab7c3;--muted:#8895a1;--line:#263341;--grid:#1f2a35;--track:#1d2833;--bat:#7db0ff;--bowl:#ffa66b;--soft:#3b4a58;color-scheme:dark}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--font-body);padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+[hidden]{display:none!important}
+.page{max-width:1040px;margin:0 auto;padding-block:28px 56px;display:flex;flex-direction:column;gap:28px}
+#app[data-view="bat"]{--accent:var(--bat)}#app[data-view="bowl"]{--accent:var(--bowl)}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.1;font-weight:700}h2{font-size:20px;font-weight:600}h3{font-size:15px;font-weight:600}p{margin:0}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.lede{color:var(--ink2);max-width:68ch}header{display:flex;flex-direction:column;gap:10px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--muted);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi b{font:600 28px/1.15 var(--font-display);font-variant-numeric:tabular-nums}.kpi span{color:var(--ink2);font-size:13px}
+.switch{display:inline-flex;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:3px;gap:3px;align-self:flex-start}
+.switch button{font:600 14px var(--font-body);color:var(--ink2);background:none;border:0;padding:8px 18px;border-radius:7px;cursor:pointer}
+.switch button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+.switch button:focus-visible,summary:focus-visible,.pt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card-head{display:flex;flex-direction:column;gap:4px}.card-head p{color:var(--ink2);font-size:14px;max-width:74ch}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;min-width:660px;font-variant-numeric:tabular-nums}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:right;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:bottom}
+td{padding:10px 8px;border-bottom:1px solid var(--grid);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;width:44px}th.l,td.l{text-align:left}tr:last-child td{border-bottom:0}
+td.rk{font-family:var(--font-display);font-weight:600;color:var(--muted)}td.nm{font-weight:600}
+.dv{display:flex;align-items:center;gap:8px;justify-content:flex-end}.dv .val{min-width:40px;font-weight:600}
+.trk{display:block;width:72px;height:6px;border-radius:3px;background:var(--track);overflow:hidden}.trk i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.small{color:var(--ink2);font-size:13px}.note{border-left:3px solid var(--accent);padding:2px 0 2px 12px;color:var(--ink2);font-size:14px;max-width:82ch}
+.split{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--track);width:140px}.split i{display:block;height:100%}.split .a{background:var(--accent)}.split .b{background:var(--soft)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted)}.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend .a::before{background:var(--accent)}.legend .b::before{background:var(--soft)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.bars{display:flex;flex-direction:column;gap:10px}.bar{display:grid;grid-template-columns:122px 1fr 44px;gap:10px;align-items:center;font-size:13px}
+.bar .t{height:10px;background:var(--track);border-radius:5px;overflow:hidden;display:flex}.bar .t i{display:block;height:100%}
+.bar .f1{background:var(--bat)}.bar .f2{background:var(--bowl)}.bar b{text-align:right;font-weight:600}
+.chartwrap{position:relative}svg.chart{width:100%;height:auto;display:block}
+svg.chart text{font:12px var(--font-body);fill:var(--muted)}svg.chart .gl{stroke:var(--grid);stroke-width:1}svg.chart .ax{stroke:var(--line);stroke-width:1}svg.chart .th{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 4}
+svg.chart .pt circle{fill:var(--accent);stroke:var(--surface);stroke-width:2}svg.chart .pt text{fill:var(--surface);font-weight:600;font-size:11px;text-anchor:middle;pointer-events:none}
+svg.chart .pt:hover circle,svg.chart .pt:focus circle{stroke:var(--ink)}svg.chart .ttl{fill:var(--ink2);font-size:12px}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--surface);font-size:12.5px;line-height:1.45;padding:8px 10px;border-radius:7px;white-space:nowrap;transform:translate(-50%,-110%);z-index:3}.tip b{font-weight:600}
+.pips{display:inline-flex;gap:3px;vertical-align:middle}.pips i{width:12px;height:12px;border-radius:2px;background:var(--track)}.pips i.on{background:var(--accent)}
+.sens td,.sens th{text-align:left}.sens th:first-child,.sens td:first-child{width:auto}.sens .frac{font-weight:600;margin-left:8px}.sens .nc{color:var(--muted)}
+details{border-top:1px solid var(--line);padding-block:12px}details:first-of-type{border-top:0}
+summary{cursor:pointer;font:600 15px var(--font-display);list-style:none;display:flex;justify-content:space-between;gap:12px}summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--muted);font-weight:500}details[open] summary::after{content:"–"}
+details .body{padding-top:10px;display:flex;flex-direction:column;gap:10px;color:var(--ink2);font-size:14px}
+pre{margin:0;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--ink)}
+ul.tight{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}footer{color:var(--muted);font-size:13px;max-width:82ch}
+@media (max-width:560px){.card{padding:14px}.trk{width:70px}.bar{grid-template-columns:80px 1fr 40px}}
+@media (prefers-reduced-motion:no-preference){.trk i{transition:width .3s ease}}
+</style>
+
+<div class="page" id="app" data-view="bat">
+<header><div class="eyebrow">SupeRR Selector Season 2 · Round 1</div><h1>CLUTCH Dashboard</h1>
+<p class="lede">Ten batters and ten bowlers ranked by pressure-adjusted contribution in IPL and T20I matches from 2022 to 2026, controlling for phase, format, opportunity and sample size.</p>
+<div class="meta"><span>Analysis date: 17 November 2026</span><span>Pressure cutoff: 70th percentile (46.0 / 100)</span></div></header>
+<section class="kpis" aria-label="Dataset summary" id="kpis"></section>
+<section class="card" aria-labelledby="pc-h"><div class="card-head"><h2 id="pc-h">Does the pressure index separate hard situations from ordinary ones?</h2>
+<p>High-pressure deliveries score at the same pace as ordinary ones, but wickets fall about 50% faster and the batting side wins far less often. Over half of them come before the death overs.</p></div>
+<div class="two"><div class="scroll"><table id="pc-table" style="min-width:0"></table></div><div><h3 style="margin-bottom:10px">Where high-pressure deliveries occur</h3><div class="bars" id="pc-bars"></div><p class="small" style="margin-top:12px">Share of deliveries that are high-pressure, by innings and phase.</p><div class="legend" style="margin-top:6px"><span class="a" style="--c:0" id="lg1"></span><span class="a" id="lg2"></span></div></div></div></section>
+<div class="switch" role="group" aria-label="Choose ranking"><button type="button" id="b-bat" aria-pressed="true">Batters</button><button type="button" id="b-bowl" aria-pressed="false">Bowlers</button></div>
+<section class="card" aria-labelledby="rk-h"><div class="card-head"><h2 id="rk-h">Top 10 ranking</h2><p id="rk-p"></p></div><div class="note" id="rk-note"></div>
+<div class="scroll"><table id="rk-table"></table></div><p class="small">HP = high-pressure. Pos. matches is the share of pressure-exposure matches with positive match-level value.</p></section>
+<section class="card" aria-labelledby="sc-h"><div class="card-head"><h2 id="sc-h">Score against sample size</h2><p id="sc-p"></p></div><div class="chartwrap" id="sc-wrap"></div></section>
+<section class="card" aria-labelledby="st-h"><div class="card-head"><h2 id="st-h">Rank stability</h2><p>Matches were resampled 1,000 times and the ranking recalculated. The last column removes every eligible player's best pressure match and re-ranks. Tight scores around 10th place make the lower half of each list the least certain.</p></div>
+<div class="scroll"><table id="st-table"></table></div></section>
+<section class="card" aria-labelledby="cx-h"><div class="card-head"><h2 id="cx-h">Format and team context</h2><p>Each delivery is compared with its own format baseline, so IPL and T20I evidence can sit together. Teams come from the competition squad listings.</p></div>
+<div class="legend"><span class="a">IPL</span><span class="b">T20I</span></div><div class="scroll"><table id="cx-table"></table></div></section>
+<section class="card" aria-labelledby="se-h"><div class="card-head"><h2 id="se-h">Sensitivity: how stable are the lists?</h2><p>Each row changes one assumption and counts how many of the original ten names stay in the top ten. The baseline is a 70th-percentile cutoff, a 5-run batter dismissal penalty, a 6-run bowler wicket bonus and a 60-delivery prior.</p></div>
+<div class="scroll"><table class="sens" id="se-table"></table></div><p class="small" id="se-note"></p></section>
+<section class="card" aria-labelledby="me-h"><div class="card-head"><h2 id="me-h">Method</h2></div><div>
+<details open><summary>Pressure index</summary><div class="body"><p>Each delivery is scored from the match state just before it is bowled, from 0 (low) to 100 (high). The cutoff is the 70th percentile of all deliveries.</p>
+<pre>Second innings (chase)
+P = 100 x [ 0.55 x clip((RRR - 8.0) / 5, 0, 1)
+          + 0.30 x clip(wickets_lost / 8, 0, 1)
+          + 0.15 x innings_progress ]
+
+First innings
+P = 100 x [ 0.48 x clip(wickets_lost / 8, 0, 1)
+          + 0.32 x clip((8.5 - CRR) / 4, 0, 1)
+          + 0.20 x innings_progress ]</pre><p>RRR is the required run rate and CRR the current run rate, both before the delivery. Phases: powerplay overs 1–6, middle 7–15, death 16–20.</p></div></details>
+<details><summary>Player ratings</summary><div class="body"><pre>BatterValue = batter_runs - expected_batter_runs - 5 x credited_dismissal
+BowlerValue = expected_bowler_runs - bowler_charged_runs + 6 x bowler_credited_wicket
+
+ReliabilityScore = HPValue x HPBalls/(HPBalls+60) + OverallValue x 60/(HPBalls+60)
+PressureDelta    = HPValue - OverallValue
+CLUTCH Score     = 0.65 x ReliabilityScore + 0.35 x PressureDelta</pre>
+<p>Expected runs come from the format, innings and phase average. Byes and leg-byes are not charged to the bowler. Run-outs and retired or obstructing dismissals are not credited to batters or bowlers. The 60-delivery prior pulls small samples toward the player's overall baseline.</p></div></details>
+<details><summary>Eligibility filters</summary><div class="body"><ul class="tight"><li>Batters: at least 80 high-pressure balls, 8 pressure matches and 150 total batting deliveries (154 eligible).</li><li>Bowlers: at least 100 high-pressure balls, 8 pressure matches and 150 total bowling deliveries (161 eligible).</li></ul></div></details>
+<details><summary>Limitations</summary><div class="body"><ul class="tight"><li>Pressure is an operational definition, not a measure of a player's state of mind.</li><li>The 8.0 RRR and 8.5 CRR reference points are fixed benchmarks, not venue-specific par scores.</li><li>The cutoff is distribution-based (top 30%); a different cutoff changes the rankings.</li><li>Values are additive approximations. They do not model win probability, fielding, partnerships, pitch, boundary size or opposition strength.</li><li>The 5-run and 6-run weights are model choices, not scoring rules.</li><li>Several leading players have small pressure samples, and scores around 10th place are tightly packed.</li><li>Only the supplied competitions and dates are covered, and no outside information is used.</li></ul></div></details>
+<details><summary>Data lineage</summary><div class="body"><p>Scores come from ball_by_ball.csv, matches.csv and competitions.csv. playing_eleven.csv, competition_team_player_mapping.csv and teams.csv are used for cross-checks and team context: all 388 pressure player-matches of the 20 ranked players appear in the playing XI file, and all 348 squad-listing team pairs agree with teams.csv. 26 super-over deliveries are retained in the baselines; excluding them swaps the 10th and 11th bowlers.</p></div></details>
+</div></section>
+<footer>The ranking is a statistical shortlist computed only from the supplied data pack. Methodology references: Mallawa Arachchi, Manage &amp; Scariano (2024); Irvine &amp; Kennedy (2017); Hassan &amp; Rafique (2022).</footer>
+</div>
+<script>
+(function(){
+var D={"bat": [{"rank": 1, "n": "Phil Salt", "score": 31.81, "hp": 103, "runs": 211, "d": 6, "delta": 32.9, "pos": 50, "ipl": 28, "t20": 75, "m": 8, "team": "Royal Challengers Bengaluru / England", "top10": 79, "med": 2, "p10": 1, "p90": 33, "fr": 1, "per": 204.9, "role": "1 · RHB"}, {"rank": 2, "n": "Reeza Hendricks", "score": 22.51, "hp": 222, "runs": 383, "d": 9, "delta": 28.3, "pos": 46, "ipl": 0, "t20": 222, "m": 13, "team": "South Africa", "top10": 77, "med": 4, "p10": 1, "p90": 25, "fr": 2, "per": 172.5, "role": "2 · RHB"}, {"rank": 3, "n": "Naman Dhir", "score": 14.55, "hp": 195, "runs": 376, "d": 12, "delta": 19.9, "pos": 50, "ipl": 140, "t20": 55, "m": 20, "team": "Mumbai Indians / India", "top10": 60, "med": 8, "p10": 2, "p90": 32, "fr": 3, "per": 192.8, "role": "7 · RHB"}, {"rank": 4, "n": "Glenn Maxwell", "score": 13.38, "hp": 223, "runs": 395, "d": 14, "delta": 24.1, "pos": 39, "ipl": 102, "t20": 121, "m": 18, "team": "Punjab Kings / Australia", "top10": 54, "med": 9, "p10": 2, "p90": 56, "fr": 10, "per": 177.1, "role": "4 · RHB"}, {"rank": 5, "n": "Sanju Samson", "score": 12.59, "hp": 251, "runs": 447, "d": 14, "delta": 19.9, "pos": 53, "ipl": 183, "t20": 68, "m": 19, "team": "Chennai Super Kings / India", "top10": 51, "med": 10, "p10": 3, "p90": 36, "fr": 4, "per": 178.1, "role": "3 · RHB"}, {"rank": 6, "n": "Shai Hope", "score": 12.38, "hp": 130, "runs": 220, "d": 7, "delta": 20.1, "pos": 60, "ipl": 0, "t20": 130, "m": 10, "team": "Delhi Capitals / West Indies", "top10": 45, "med": 13, "p10": 2, "p90": 98, "fr": 37, "per": 169.2, "role": "3 · RHB"}, {"rank": 7, "n": "Shashank Singh", "score": 9.53, "hp": 379, "runs": 645, "d": 12, "delta": 17.4, "pos": 48, "ipl": 379, "t20": 0, "m": 29, "team": "Punjab Kings", "top10": 43, "med": 12, "p10": 5, "p90": 34, "fr": 5, "per": 170.2, "role": "6 · RHB"}, {"rank": 8, "n": "Mark Chapman", "score": 8.93, "hp": 301, "runs": 469, "d": 12, "delta": 18.9, "pos": 55, "ipl": 0, "t20": 301, "m": 20, "team": "New Zealand", "top10": 41, "med": 13, "p10": 4, "p90": 40, "fr": 8, "per": 155.8, "role": "5 · LHB"}, {"rank": 9, "n": "Prabhsimran Singh", "score": 8.63, "hp": 87, "runs": 163, "d": 6, "delta": 16.7, "pos": 36, "ipl": 87, "t20": 0, "m": 11, "team": "Punjab Kings / India", "top10": 49, "med": 11, "p10": 1, "p90": 108, "fr": 46, "per": 187.4, "role": "1 · RHB"}, {"rank": 10, "n": "Suryakumar Yadav", "score": 5.27, "hp": 679, "runs": 1128, "d": 27, "delta": 0.4, "pos": 53, "ipl": 513, "t20": 166, "m": 36, "team": "Mumbai Indians / India", "top10": 23, "med": 18, "p10": 7, "p90": 41, "fr": 7, "per": 166.1, "role": "4 · RHB"}], "bowl": [{"rank": 1, "n": "Anshul Kamboj", "score": 80.65, "hp": 107, "runs": 127, "d": 12, "delta": 83.6, "pos": 88, "ipl": 107, "t20": 0, "m": 8, "team": "Chennai Super Kings", "top10": 71, "med": 3, "p10": 1, "p90": 44, "fr": 3, "per": 7.1, "w": 12, "dots": 45, "role": "Right-arm medium-fast"}, {"rank": 2, "n": "Sufiyan Muqeem", "score": 70.77, "hp": 148, "runs": 143, "d": 15, "delta": 34.8, "pos": 91, "ipl": 0, "t20": 148, "m": 11, "team": "Pakistan", "top10": 63, "med": 6, "p10": 1, "p90": 54, "fr": 10, "per": 5.8, "w": 15, "dots": 79, "role": "Left-arm Chinaman"}, {"rank": 3, "n": "Abrar Ahmed", "score": 70.32, "hp": 321, "runs": 279, "d": 25, "delta": 36.1, "pos": 88, "ipl": 0, "t20": 321, "m": 25, "team": "Pakistan", "top10": 67, "med": 7, "p10": 2, "p90": 20, "fr": 1, "per": 5.2, "w": 25, "dots": 146, "role": "Right-arm Leg-Break"}, {"rank": 4, "n": "Sai Kishore", "score": 70.03, "hp": 134, "runs": 153, "d": 13, "delta": 56.0, "pos": 100, "ipl": 134, "t20": 0, "m": 11, "team": "Gujarat Titans", "top10": 67, "med": 7, "p10": 3, "p90": 20, "fr": 2, "per": 6.9, "w": 13, "dots": 43, "role": "Slow left-arm orthodox"}, {"rank": 5, "n": "Salman Mirza", "score": 64.62, "hp": 111, "runs": 117, "d": 10, "delta": 32.1, "pos": 92, "ipl": 0, "t20": 111, "m": 12, "team": "Pakistan", "top10": 50, "med": 11, "p10": 3, "p90": 37, "fr": 4, "per": 6.3, "w": 10, "dots": 44, "role": "Left-arm medium"}, {"rank": 6, "n": "Jamie Overton", "score": 63.67, "hp": 224, "runs": 260, "d": 20, "delta": 40.0, "pos": 82, "ipl": 91, "t20": 133, "m": 17, "team": "Chennai Super Kings / England", "top10": 43, "med": 13, "p10": 3, "p90": 47, "fr": 5, "per": 7.0, "w": 20, "dots": 89, "role": "Right-arm Fast"}, {"rank": 7, "n": "Mohammad Nawaz", "score": 59.79, "hp": 259, "runs": 280, "d": 25, "delta": 29.6, "pos": 74, "ipl": 0, "t20": 259, "m": 23, "team": "Pakistan", "top10": 38, "med": 16, "p10": 3, "p90": 62, "fr": 7, "per": 6.5, "w": 25, "dots": 106, "role": "Slow left-arm orthodox"}, {"rank": 8, "n": "Jasprit Bumrah", "score": 58.24, "hp": 585, "runs": 671, "d": 42, "delta": 21.8, "pos": 83, "ipl": 366, "t20": 219, "m": 52, "team": "Mumbai Indians / India", "top10": 28, "med": 18, "p10": 5, "p90": 49, "fr": 6, "per": 6.9, "w": 42, "dots": 222, "role": "Right-arm Fast"}, {"rank": 9, "n": "Benjamin Sears", "score": 58.22, "hp": 155, "runs": 174, "d": 13, "delta": 38.0, "pos": 100, "ipl": 0, "t20": 155, "m": 12, "team": "New Zealand", "top10": 34, "med": 17, "p10": 4, "p90": 48, "fr": 11, "per": 6.7, "w": 13, "dots": 55, "role": "Right-arm medium-fast"}, {"rank": 10, "n": "Shaheen Afridi", "score": 57.95, "hp": 295, "runs": 360, "d": 26, "delta": 31.5, "pos": 79, "ipl": 0, "t20": 295, "m": 33, "team": "Pakistan", "top10": 30, "med": 18, "p10": 5, "p90": 48, "fr": 8, "per": 7.3, "w": 26, "dots": 101, "role": "Left-arm Fast"}], "R": {"thr": 46.0, "rows": 194014, "matches": 837, "hp_rows": 58222, "hp": {"n": 58222, "share": 30.009174595647735, "rpo": 8.94363076257904, "wk100": 7.0574696849987975, "dot": 32.65260554429597, "bnd": 17.19968396825942}, "ord": {"n": 135792, "share": 69.99082540435226, "rpo": 8.858997746539329, "wk100": 4.6961529397902675, "dot": 34.20525509602922, "bnd": 18.4414398491811}, "win_hp": 22.84362154133131, "win_ord": 60.404895719971975, "win_hp_by_inn": {"1": 34.770114942528735, "2": 13.519418969655936}, "win_ord_by_inn": {"1": 55.6466058872283, "2": 66.40214314597654}, "comp": {"DEATH": [27104, 46.55284943835664], "MID": [26778, 45.99292363711312], "PP": [4340, 7.454226924530246]}, "phase": {"1_DEATH": [60.4563951168914, 25066], "1_MID": [20.53446466060182, 45728], "1_PP": [3.787587971849008, 31260], "2_DEATH": [66.90554840154526, 17861], "2_MID": [39.9164390165515, 43561], "2_PP": [10.343471421080231, 30512]}, "sens": {"cut65": [6, 7], "cut75": [5, 8], "bat4": 9, "bowl4": 9, "bat7": 10, "bowl7": 9, "minexp": [8, 6], "prior30": [10, 9], "prior120": [10, 9], "nosuper": [10, 9]}, "nb": {"name": "Jos Buttler", "score": 4.309298472220162, "gap": 0.9578250269249011}, "nbw": {"name": "Sunil Narine", "score": 57.79419598591154, "gap": 0.1578194703312974, "nosuper_score": 58.02564452688401, "afridi_nosuper": 57.95201545624284}, "elig": [154, 161], "fmt": {"IPL": 367, "T20I": 470}}};var app=document.getElementById("app");var view="bat";
+function fmt(v){return (v>0?"+":"")+v.toFixed(1)}function th(t,l){return '<th'+(l?' class="l"':'')+'>'+t+'</th>'}
+function f1(v){return v.toFixed(1)}function n0(v){return Math.round(v).toLocaleString("en-US")}
+function kpis(){var R=D.R;var k=[[R.matches,"Matches ("+R.fmt.T20I+" T20I, "+R.fmt.IPL+" IPL)"],[n0(R.rows),"Deliveries analysed"],[n0(R.hp_rows),"High-pressure deliveries"],[f1(R.thr),"Pressure cutoff, 0 to 100"]];
+document.getElementById("kpis").innerHTML=k.map(function(x){return '<div class="kpi"><b>'+x[0]+'</b><span>'+x[1]+'</span></div>'}).join("")}
+function pcheck(){var R=D.R,h=R.hp,o=R.ord;
+var rows=[["Deliveries",n0(h.n)+" ("+f1(h.share)+"%)",n0(o.n)+" ("+f1(o.share)+"%)"],["Runs per over",h.rpo.toFixed(2),o.rpo.toFixed(2)],["Wickets per 100 deliveries",h.wk100.toFixed(2),o.wk100.toFixed(2)],["Dot-ball share",f1(h.dot)+"%",f1(o.dot)+"%"],["Batting side went on to win",f1(R.win_hp)+"%",f1(R.win_ord)+"%"],["  First innings",f1(R.win_hp_by_inn["1"])+"%",f1(R.win_ord_by_inn["1"])+"%"],["  Second innings",f1(R.win_hp_by_inn["2"])+"%",f1(R.win_ord_by_inn["2"])+"%"]];
+document.getElementById("pc-table").innerHTML='<thead><tr>'+th("Measure",1)+th("High-pressure")+th("Ordinary")+'</tr></thead><tbody>'+rows.map(function(r){return '<tr><td class="l">'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'}).join("")+'</tbody>';
+var ph=[["PP","Powerplay"],["MID","Middle"],["DEATH","Death"]],h2="";
+[1,2].forEach(function(i){ph.forEach(function(p){var v=R.phase[i+"_"+p[0]][0];h2+='<div class="bar"><span>'+(i==1?"1st":"2nd")+" · "+p[1]+'</span><span class="t"><i class="f'+i+'" style="width:'+v+'%"></i></span><b>'+Math.round(v)+'%</b></div>'})});
+document.getElementById("pc-bars").innerHTML=h2;
+document.getElementById("lg1").outerHTML='<span style="--x:0"><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--bat);margin-right:6px"></i>First innings</span>';
+document.getElementById("lg2").outerHTML='<span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--bowl);margin-right:6px"></i>Second innings</span>'}
+function rank(){var rows=D[view];var max=Math.max.apply(null,rows.map(function(r){return r.score}));
+var h='<thead><tr>'+th("Rank")+th("Player",1)+th("CLUTCH score")+th("HP balls")+th("HP runs");
+h+=view=="bat"?th("Runs / 100 HP balls")+th("Dismissals"):th("Runs / 6 HP balls")+th("Wkts")+th("Dots");
+h+=th("∆ vs baseline")+th("Pos. matches")+'</tr></thead><tbody>';
+rows.forEach(function(r){h+='<tr><td class="rk">'+r.rank+'</td><td class="nm l">'+r.n+'</td><td><div class="dv"><span class="val">'+f1(r.score)+'</span><span class="trk"><i style="width:'+Math.max(2,r.score/max*100)+'%"></i></span></div></td><td>'+r.hp+'</td><td>'+r.runs+'</td>';
+h+=view=="bat"?'<td>'+f1(r.per)+'</td><td>'+r.d+'</td>':'<td>'+f1(r.per)+'</td><td>'+r.w+'</td><td>'+r.dots+'</td>';
+h+='<td>'+fmt(r.delta)+'</td><td>'+r.pos+'%</td></tr>'});
+document.getElementById("rk-table").innerHTML=h+'</tbody>';
+document.getElementById("rk-p").textContent=view=="bat"?"Ordered by CLUTCH score. HP balls are deliveries to the striker, including wides. ∆ vs baseline is the gain over the player's own overall rate.":"Ordered by CLUTCH score. Runs are bowler-charged runs; dots are deliveries where the batting side scored nothing. ∆ vs baseline is the gain over the player's own overall rate.";
+var N=D.R.nb,W=D.R.nbw;
+document.getElementById("rk-note").textContent=view=="bat"?"Phil Salt leads on 103 pressure balls in 8 matches. Suryakumar Yadav has the largest sample (679 balls, 36 matches) with a modest +0.4 uplift. The 11th-ranked batter, "+N.name+" ("+N.score.toFixed(2)+"), is "+N.gap.toFixed(2)+" behind the 10th.":"Anshul Kamboj leads on 107 pressure balls in 8 matches. Jasprit Bumrah has the largest sample (585 balls) with 42 wickets. The 11th-ranked bowler, "+W.name+" ("+W.score.toFixed(2)+"), is "+W.gap.toFixed(2)+" behind the 10th."}
+var NS="http://www.w3.org/2000/svg";function el(t,a,x){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);if(x!=null)e.textContent=x;return e}
+function scatter(){var rows=D[view],minHP=view=="bat"?80:100,W=760,H=380,L=54,Rr=22,T=22,B=48,xmin=70,xmax=800,ymax=view=="bat"?35:90,ys=view=="bat"?5:10;
+function X(v){return L+(Math.log(v)-Math.log(xmin))/(Math.log(xmax)-Math.log(xmin))*(W-L-Rr)}function Y(v){return T+(1-v/ymax)*(H-T-B)}
+var wrap=document.getElementById("sc-wrap");wrap.innerHTML="";
+var svg=el("svg",{"class":"chart",viewBox:"0 0 "+W+" "+H,role:"img","aria-label":"CLUTCH score against high-pressure sample size"});
+for(var y=0;y<=ymax;y+=ys){svg.appendChild(el("line",{"class":y===0?"ax":"gl",x1:L,x2:W-Rr,y1:Y(y),y2:Y(y)}));svg.appendChild(el("text",{x:L-8,y:Y(y)+4,"text-anchor":"end"},String(y)))}
+[100,150,200,300,500,700].forEach(function(t){svg.appendChild(el("line",{"class":"gl",x1:X(t),x2:X(t),y1:T,y2:H-B}));svg.appendChild(el("text",{x:X(t),y:H-B+18,"text-anchor":"middle"},String(t)))});
+svg.appendChild(el("text",{"class":"ttl",x:(L+W-Rr)/2,y:H-8,"text-anchor":"middle"},"High-pressure balls (log scale)"));
+svg.appendChild(el("text",{"class":"ttl",x:14,y:(T+H-B)/2,"text-anchor":"middle",transform:"rotate(-90 14 "+((T+H-B)/2)+")"},"CLUTCH score"));
+svg.appendChild(el("line",{"class":"th",x1:X(minHP),x2:X(minHP),y1:T,y2:H-B}));svg.appendChild(el("text",{x:X(minHP)+6,y:T+10},"Minimum "+minHP+" balls"));
+var tip=document.createElement("div");tip.className="tip";tip.hidden=true;
+rows.forEach(function(r){var g=el("g",{"class":"pt",tabindex:"0",transform:"translate("+X(r.hp)+","+Y(r.score)+")","aria-label":r.n+", "+r.hp+" balls, score "+f1(r.score)});
+g.appendChild(el("circle",{r:10,cx:0,cy:0}));g.appendChild(el("text",{x:0,y:4},String(r.rank)));
+function show(){var gb=g.getBoundingClientRect(),wb=wrap.getBoundingClientRect();tip.innerHTML="<b>"+r.rank+". "+r.n+"</b><br>CLUTCH "+f1(r.score)+" · "+r.hp+" HP balls<br>Positive in "+r.pos+"% of matches";tip.style.left=(gb.left+gb.width/2-wb.left)+"px";tip.style.top=(gb.top-wb.top)+"px";tip.hidden=false}
+function hide(){tip.hidden=true}g.addEventListener("mouseenter",show);g.addEventListener("focus",show);g.addEventListener("click",show);g.addEventListener("mouseleave",hide);g.addEventListener("blur",hide);svg.appendChild(g)});
+wrap.appendChild(svg);wrap.appendChild(tip);
+document.getElementById("sc-p").textContent=view=="bat"?"Each dot is a ranked batter, numbered by rank. Dots further right have more pressure balls behind their score. Phil Salt has the highest score on one of the smaller samples; Suryakumar Yadav has the largest sample.":"Each dot is a ranked bowler, numbered by rank. Dots further right have more pressure balls behind their score. Anshul Kamboj has the highest score on one of the smaller samples; Jasprit Bumrah has the largest sample."}
+function stab(){var rows=D[view];var h='<thead><tr>'+th("Rank")+th("Player",1)+th("In top 10, 1,000 resamples")+th("Median rank")+th("10th–90th pct rank")+th("Rank without best match")+'</tr></thead><tbody>';
+rows.forEach(function(r){h+='<tr><td class="rk">'+r.rank+'</td><td class="nm l">'+r.n+'</td><td><div class="dv"><span class="val">'+r.top10+'%</span><span class="trk"><i style="width:'+r.top10+'%"></i></span></div></td><td>'+r.med+'</td><td>'+r.p10+" to "+r.p90+'</td><td>'+r.fr+(r.fr>10?' <span class="nc">(out)</span>':'')+'</td></tr>'});
+document.getElementById("st-table").innerHTML=h+'</tbody>'}
+function ctx(){var rows=D[view];var h='<thead><tr>'+th("Rank")+th("Player",1)+th(view=="bat"?"Position · hand":"Style",1)+th("Teams in squad listings",1)+th("HP balls by format",1)+th("IPL")+th("T20I")+th("HP matches")+'</tr></thead><tbody>';
+rows.forEach(function(r){var t=r.ipl+r.t20,a=r.ipl/t*100;h+='<tr><td class="rk">'+r.rank+'</td><td class="nm l">'+r.n+'</td><td class="l small">'+r.role+'</td><td class="l small">'+r.team+'</td><td class="l"><span class="split"><i class="a" style="width:'+a+'%"></i><i class="b" style="width:'+(100-a)+'%"></i></span></td><td>'+r.ipl+'</td><td>'+r.t20+'</td><td>'+r.m+'</td></tr>'});
+document.getElementById("cx-table").innerHTML=h+'</tbody>'}
+function sens(){var S=D.R.sens;function cell(n){if(n===null)return '<span class="nc">Not changed</span>';var p='<span class="pips" aria-hidden="true">';for(var i=0;i<10;i++)p+='<i'+(i<n?' class="on"':'')+'></i>';return p+'</span><span class="frac">'+n+'/10</span>'}
+var rows=[["Pressure cutoff 65%",S.cut65[0],S.cut65[1]],["Pressure cutoff 75%",S.cut75[0],S.cut75[1]],["Batter dismissal penalty 4",S.bat4,null],["Batter dismissal penalty 7",S.bat7,null],["Bowler wicket bonus 4",null,S.bowl4],["Bowler wicket bonus 7",null,S.bowl7],["Shrinkage prior 30 deliveries",S.prior30[0],S.prior30[1]],["Shrinkage prior 120 deliveries",S.prior120[0],S.prior120[1]],["Stricter exposure (120 batter / 150 bowler HP balls)",S.minexp[0],S.minexp[1]],["Super-over deliveries excluded",S.nosuper[0],S.nosuper[1]]];
+document.getElementById("se-table").innerHTML='<thead><tr><th>Test</th><th>Batter top 10 overlap</th><th>Bowler top 10 overlap</th></tr></thead><tbody>'+rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+cell(r[1])+'</td><td>'+cell(r[2])+'</td></tr>'}).join("")+'</tbody>';
+document.getElementById("se-note").textContent="The lists are stable to the dismissal penalty, wicket bonus and shrinkage prior, and move with the pressure cutoff. The stricter exposure test removes the players with the smallest pressure samples. Names that survive several tests deserve more confidence than names that enter at only one."}
+function setView(v){view=v;app.setAttribute("data-view",v);document.getElementById("b-bat").setAttribute("aria-pressed",v=="bat");document.getElementById("b-bowl").setAttribute("aria-pressed",v=="bowl");rank();scatter();stab();ctx()}
+document.getElementById("b-bat").addEventListener("click",function(){setView("bat")});document.getElementById("b-bowl").addEventListener("click",function(){setView("bowl")});
+kpis();pcheck();sens();setView("bat")})();
+</script>
+</body>
+</html>
